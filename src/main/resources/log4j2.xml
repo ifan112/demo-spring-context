@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Configuration status="WARN" monitorInterval="10">
+
+    <!-- 配置通用属性 -->
+    <Properties>
+
+        <!--
+                %highlight                日志高亮
+                %p / %level               日志级别
+                %d{HH:mm:ss.SSS} / %date  格式化当前日志输出时间
+                %t                        日志所在的线程
+                %M / %method              日志所在的方法
+                %L / %line                日志所在的行数
+                %c / %logger              日志记录器名称
+                %m / %msg / %message      日志内容
+                %n                        换行符
+        -->
+        <!-- 默认日志格式 -->
+        <Property name="layout">%-5level | %date{MM-dd HH:mm:ss.SSS} | %logger{1.}.%method:%line | %msg%n
+        </Property>
+
+    </Properties>
+
+    <Appenders>
+
+        <!--
+            一个基于org.apache.logging.log4j.core.appender的日志打印器。
+            name，是该日志打印器的名称标识，日志记录器通过该名称引用该日志打印器打印日志
+            target，设置以何种方式输出到控制台。有两种：SYSTEM_OUT 和 SYSTEM_ERR。默认前者
+        -->
+        <Console name="Console" target="SYSTEM_OUT">
+            <PatternLayout pattern="${layout}"/>
+
+            <Filters>
+                <ThresholdFilter level="ALL"/>
+            </Filters>
+        </Console>
+
+    </Appenders>
+
+    <!-- 日志记录器 -->
+    <Loggers>
+
+        <!-- 根日志记录器 -->
+        <Root level="TRACE">
+            <AppenderRef ref="Console"/>
+        </Root>
+
+    </Loggers>
+
+</Configuration>
