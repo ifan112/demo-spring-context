@@ -2,7 +2,51 @@ AnnotationConfigApplicationContext applicationContext = new AnnotationConfigAppl
     this() {
         // 初始化context内部的AnnotatedBeanDefinitionReader和ClassPathBeanDefinitionScanner类
         // 在初始化reader时，向beanFactory注册了一些spring内部类
-        this.reader = new AnnotatedBeanDefinitionReader(this);
+        this.reader = new AnnotatedBeanDefinitionReader(this) {
+            this(applicationContext, getOrCreateEnvironment(applicationContext)) {
+                // AnnotatedBeanDefinitionReader所属的context
+                this.registry = applicationContext;
+                // 注册条件解析器，用于判断当前是否满足bean操作的条件
+                this.conditionEvaluator = new ConditionEvaluator(applicationContext, environment, null);
+
+                // 向context中注册后面将会用到的一些bean，如beanFactory的后置处理器
+                AnnotationConfigUtils.registerAnnotationConfigProcessors(applicationContext) {
+                    registerAnnotationConfigProcessors(applicationContext, Object source = null) {
+                        // 获取context持有的beanFactory
+                        DefaultListableBeanFactory beanFactory = unwrapDefaultListableBeanFactory(applicationContext);
+
+                        if (beanFactory != null) {
+                            // 设置beanFactory内部组件
+                            if (!(beanFactory.getDependencyComparator() instanceof AnnotationAwareOrderComparator)) {
+                                beanFactory.setDependencyComparator(AnnotationAwareOrderComparator.INSTANCE);
+                            }
+                            if (!(beanFactory.getAutowireCandidateResolver() instanceof ContextAnnotationAutowireCandidateResolver)) {
+                                beanFactory.setAutowireCandidateResolver(new ContextAnnotationAutowireCandidateResolver());
+                            }
+                        }
+
+                        Set<BeanDefinitionHolder> beanDefs = new LinkedHashSet<>(8);
+                        
+                        // CONFIGURATION_ANNOTATION_PROCESSOR_BEAN_NAME
+                        // = org.springframework.context.annotation.internalConfigurationAnnotationProcessor
+                        if (!context.containsBeanDefinition(CONFIGURATION_ANNOTATION_PROCESSOR_BEAN_NAME)) {
+                            // 对于spring内部的bean，使用RootBeanDefinition类来保存该bean的定义
+                            // 而对于开发者的bean，使用GenericBeanDefinition类来保存bean的定义
+                            // ConfigurationClassPostProcessor是用于在后置处理beanFactory时，
+                            // 即context刷新过程中invokeBeanFactoryPostProcessors方法，解析@Configuration类的
+                            RootBeanDefinition def = new RootBeanDefinition(ConfigurationClassPostProcessor.class);
+                            def.setSource(source);
+                            // 将ConfigurationClassPostProcessor注册到beanFactory中
+                            beanDefs.add(registerPostProcessor(applicationContext, def, CONFIGURATION_ANNOTATION_PROCESSOR_BEAN_NAME));
+                        }
+
+                        // 注册其它spring内部bean，暂时不分析
+
+                        return beanDefs;
+                    }
+                };
+            }
+        };
         this.scanner = new ClassPathBeanDefinitionScanner(this);
     };
 
@@ -252,6 +296,9 @@ AnnotationConfigApplicationContext applicationContext
     // 对于GenericApplicationContext来说，context只能刷新一次
     // 但是对于AbstractRefreshApplicationContext来说，context可以重复刷新
     -- AtomicBoolean refreshed
+    // BeanFactory的后置处理器，默认为空。可以通过context.addBeanFactoryProcessor()注册
+    // 当context刷新时，invokeBeanFactoryPostProcessors()方法会调用BeanFactory的后置处理器
+    -- List<BeanFactoryPostProcessor> beanFactoryPostProcessors;
     // 环境变量
     -- Environment environment = new StandardEnvironment()
     -- DefaultListableBeanFactory beanFactory
