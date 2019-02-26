@@ -216,12 +216,18 @@ AnnotationConfigApplicationContext applicationContext = new AnnotationConfigAppl
             // 获取beanFactory，对于不同类型的context，这个方法执行的操作会有不同
             // 对于AnnotationConfigApplicationContext来说，由于之前已经注册了一个注解配置类，beanFactory已经初始化。因此，这里直接返回beanFactory即可
             // 但是对于ClassPathXmlApplicationContext 和 AnnotationConfigWebApplicationContext 等这类可刷新的context来说，
-            // 之前不管是设置xml路径，还是添加注解配置类，都没有初始化beanFactory。
-            // 因此，这里需要初始化beanFactory，然后根据xml或者注解的配置，从classpath中扫描所有bean注册到beanFactory中。
+            // 之前不管是设置xml路径，还是添加注解配置类，都没有初始化beanFactory，因此在这里必须要初始化beanFactory。
+            // 不过，对于ClassPathXmlApplicationContext和AnnotationConfigWebApplicationContext两种不同类型的context来说，这里完成的操作并不完全一样。
+            // 对于ClassPathXmlApplicationContext来说，在这一步中自然是解析xml配置文件，解析其中所有注册的bean，然后将这些beanDefinition注册到beanFactory中。
+            // 然而，对于AnnotationConfigWebApplicationContext来说，在这一步中注册之前指定的注解配置类，如果设置了扫描路径，则扫描指定路径下的bean，然后注册到beanFactory中。
             ConfigurableListBeanFactory beanFactory = obtainFreshBeanFactory() {
-                // 对于一般类型的context来说，这个方法的内容很简单，即返回context持有的beanFactory即可
-                // 但是，对于web类型的context来说，这个方法的内容会很复杂。它包括了
+                // 对于AnnotationConfigApplicationContext来说，这一步仅仅是返回之前已经初始化，并且注册了注解配置类的beanFactory。
+                // 对于ClassPathXmlApplicationContext来说，这一步创建beanFactory，然后读取xml配置文件，解析其中注册的bean，然后将这些beanDefinition注册到beanFactory中。
             };
+
+            // 对于AnnotationConfigApplicationContext 和 AnnotationConfigWebApplicationContext来说，此时，beanFactory中只有注解配置类（spring内部类不考虑）。
+            // 稍后，在invokeBeanFactoryPostProcessors()方法中，会有注解配置类的处理器，解析配置类上的注解，将其它待注册的bean注册到beanFactory中。
+            // 对于ClassPathXmlApplicationContext来说，此时，beanFactory中已经注册有所有bean了。
 
             // 准备好beanFactory
             prepareBeanFactory(beanFactory) {
@@ -229,7 +235,11 @@ AnnotationConfigApplicationContext applicationContext = new AnnotationConfigAppl
                 beanFactory.setBeanExpressionResolver(new StandardBeanExpressionResovler(beanFactory.getBeanClassLoader()));
                 beanFactory.addPropertyEditorRegister(new ResourceEditorRegister(this, getEnvironment()));
 
+                // 添加bean创建后的后置处理器，用于在创建标准bean之后，对bean进行自定义设置
+                // 以ApplicationContextAwareProcessor为例，在bean创建之后，该处理器会检查bean是否实现了ApplicationContextAware接口，
+                // 如果bean实现了该接口，则表明bean希望在创建之后，获取到ApplicationContext以对bean进行自定义设置。
                 beanFactory.addBeanPostProcessor(new ApplicationContextAwareProcessor(this));
+                // 检查bean是否是ApplicationListener的处理器
                 beanFactory.addBeanPostProcessor(new ApplicationListenerDetector(this));
 
                 // 添加忽略的依赖接口，即如果bean中有对这几个接口的依赖，那么context将会忽略注入这些依赖
@@ -268,7 +278,9 @@ AnnotationConfigApplicationContext applicationContext = new AnnotationConfigAppl
             };
 
             try {
-                // 空
+                // 留给子类重写以自定义的beanFactory的后置处理操作
+                // 对于AnnotationConfigApplicationContext和ClassPathXmlApplicationContext来说，这是个空操作
+                // 但是对于AnnotationConfigWebApplicationContext来说，这个操作包括了添加ServletContextAwareProcessor等
                 postProcessBeanFactory(beanFactory);
 
                 // 
@@ -358,7 +370,11 @@ environment         -> StandardEnvironment
 systemEnvironment   -> Map<String, String> == System.env()
 
 ------------------------------------------------------------------------------------
-AnnotatedBeanDefinition
+AnnotatedGenericBeanDefinition
+    // bean的类类型，这里为什么不用Class而是Object？
+    -- volatile Object beanClass = Class<?>
+    // bean的注解元信息
+    -- AnnotationMetadata metadata = new StandaraAnnotationMetadata();
     // 是否等到获取该bean的时候才初始化，来自@Lazy
     -- boolean lazyInit = false;
     // 来自@DependsOn

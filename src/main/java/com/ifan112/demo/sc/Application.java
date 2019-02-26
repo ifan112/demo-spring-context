@@ -47,5 +47,10 @@ public class Application {
         System.out.println(orderService2.hashCode());
         System.out.println(orderService3.hashCode());
 
+
+        ApplicationContextAwareService contextAwareService = context.getBean(ApplicationContextAwareService.class);
+        System.out.println("当前context中一共注册了：" + contextAwareService.getAllBeanDefinitions() + "个bean。");
+
+
     }
 }
