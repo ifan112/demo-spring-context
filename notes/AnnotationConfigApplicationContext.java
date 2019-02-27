@@ -283,12 +283,179 @@ AnnotationConfigApplicationContext applicationContext = new AnnotationConfigAppl
                 // 但是对于AnnotationConfigWebApplicationContext来说，这个操作包括了添加ServletContextAwareProcessor等
                 postProcessBeanFactory(beanFactory);
 
-                // 
+                // 在创建beanFactory之后，调用beanFactory的后置处理器，对beanFactory中的beanDefinition进行处理。
+                // 例如，对于AnnotationConfigApplicationContext来说，当前beanFactory中有注解配置类。
+                // 那么就需要一个用于解析注解配置类的beanFactory后置处理器来解析该注解配置类，以获取开发者自定义的配置信息，进一步完成context初始化
+                // beanFactory的后置处理器BeanFactoryPostProcessor又分为了：BeanFactoryPostProcessor和BeanDefinitionRegistryPostProcessor
                 invokeBeanFactoryPostProcessors(beanFactory) {
-                    PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(beanFactory, getBeanFactoryPostProcessors()) {
-                        // ConfigurationClassParser查找beanFactory中有@Configuration注解的类，然后解析它的所有注解，例如@ComponentScan
-                        // 解析到@ComponentScan注解后，使用ClassPathBeanDefinitionScanner扫描目标路径下所有class文件，然后按照JVM关于class文件的规范读取class文件内容
-                        // 如果该class
+                    PostProcessorRegistrationDelegate.invokeBeanFactoryPostProcessors(beanFactory, 
+                        List<BeanFactoryPostProcessor> beanFactoryPostProcessors = getBeanFactoryPostProcessors()) {
+                        // beanFactoryPostProcessors通常是开发者自定义的beanFactory后置处理器列表
+
+                        Set<String> processBeans = new HashSet<>();
+
+                        ///////////////////////////// 首先，调用BeanDefinitionRetisryPostProcessor /////////////////////////////
+
+                        if (beanFactory instanceof BeanDefinitionRegistry) {
+                            BeanDefinitionRegistry registry = (BeanDefinitionRegistry) beanFactory;
+
+                            // 开发者自定义的BeanFactoryPostProcessor列表
+                            List<BeanFactoryPostProcessor> regularPostProcessors = new ArrayList<>();
+                            // 所有的BeanDefinitionRegistryPostProcessor列表，包括开发者自定义的和spring内部的
+                            List<BeanDefinitionRegistryPostProcessor> registryProcessors = new ArrayList<>();
+
+                            // 对开发者自定义的BeanFactoryPostProcess分类。并且，触发开发者自定义的BeanDefinitionRegistryPostProcessor
+                            for (BeanFactoryPostProcessor postProcessor : beanFactoryPostProcessors) {
+                                if (postProcessor instanceof BeanDefinitionRegistryPostProcessor) {
+                                    BeanDefinitionRegistryPostProcessor registryProcessor = (BeanDefinitionRegistryPostProcessor) postProcessor;
+                                    // 触发开发者自定义的BeanDefinitionRegistryPostProcessor
+                                    registryProcessor.postProcessBeanDefinitionRegistry(registry);
+                                    registryProcessors.add(registryPostProcessor);
+                                } else {
+                                    regularPostProcessors.add(postProcessor);
+                                }
+                            }
+
+                            List<BeanDefinitionRegistryPostProcessor> currentRegistryProcessors = new ArrayList<>();
+
+
+                            // --------------- 首先，调用实现了PriorityOrdered接口的BeanDefinitionRetisryPostProcessor --------------- //
+
+                            // 获取beanFactory中已经注册的spring内部BeanDefinitionRegistryPostProcessor的实现类名称
+                            // 主要是来自之前spring注册的内部beanFactory后置处理器。例如，对于AnnotationConfigApplicationContext来说，
+                            // 在创建AnnotationBeanDefinitionReader时，向beanFactory中注册了ConfigurationClassPostProcessor这个beanFactory的后置处理器
+                            String[] postProcessorNames = beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
+                            for (String ppName : postProcessorNames) {
+                                if (beanFactory.isTypeMatch(ppName, PriorityOrdered.class)) {
+                                    // 获取实现了PriorityOrdered接口的实现类的实例，并且添加到currentRegistryProcessors列表中
+                                    currentRegistryProcessors.add(beanFactory.getBean(ppName, BeanDefinitionRegistryPostProcessor.class));
+                                    processedBeans.add(ppName);
+                                }
+                            }
+
+                            // 对后置处理器排序
+                            sortPostProcessors(currentRegistryProcessors, beanFactory);
+                            // 至此，registryProcessors包含了开发者自定义和spring内部的所有BeanDefinitionRegistryPostProcessor列表
+                            registryProcessors.addAll(currentRegistryProcessors);
+                            // 以默认情况为例，至此，currentRegistryProcessors和registryProcessors列表中只有ConfigurationClassPostProcessor
+                            // 触发spring内部的BeanDefinitionRegistryPostProcessor
+                            // 即，调用ConfigurationClassPostProcessor对注册到beanFactory中的注解配置类进行解析
+                            invokeBeanDefinitionRegistryPostProcessors(currentRegistryProcessors, registry) {
+                                // 遍历BeanDefinitionRegistryPostProcessor列表，对beanFactory中已注册的beanDefinition进行后置处理
+                                for (BeanDefinitionRegistryPostProcessor postProcessor : currentRegistryProcessors) {
+                                    postProcessor.postProcessBeanDefinitionRegistry(registry) {
+                                        // 下面是ConfigurationClassPostProcessor的postProcessBeanDefinitionRegistry方法
+
+                                        // 可作为配置类的beanDefinition列表
+                                        List<BeanDefinitionHolder> configCandidates = new ArrayList<>();
+                                        // beanFactory中当前已注册的bean名称列表
+                                        String[] candidateNames = registry.getBeanDefinitionNames();
+
+                                        // 遍历beanFactory中当前已注册的bean名称列表，找到可作为配置类的beanDefinition
+                                        for (String beanName : candidateNames) {
+                                            BeanDefinition beanDef = registry.getBeanDefinition(beanName);
+                                            if (ConfigurationClassUtils.isFullConfigurationClass(beanDef)
+                                                    || ConfigurationClassUtils.isLiteConfigurationClass(beanDef)) {
+                                                // logger
+                                            } else if (ConfigurationClassUtils.checkConfigurationClassCandidate(beanDef, this.metadataReaderFactory)) {
+                                                configCandidates.add(new BeanDefinitionHolder(beanDef, beanName));
+                                            }
+                                        }
+
+                                        // 如果没有@Configuration注解的类，那么直接返回
+                                        if (configCandidates.isEmpty()) {
+                                            return;
+                                        }
+
+                                        // 对配置类进行排序
+                                        configCandidates.sort((bd1, bd2) -> {
+                                            int i1 = ConfigurationClassUtils.getOrder(bd1.getBeanDefinition());
+                                            int i2 = ConfigurationClassUtils.getOrder(bd2.getBeanDefinition());
+                                            return Integer.compare(i1, i2);
+                                        });
+
+                                        // ...其它准备操作
+
+                                        // 构造一个@Configuration注解配置类的解析器
+                                        ConfigurationClassParse parser = new ConfigurationClassParse(..)
+
+                                        Set<BeanDefinitionHolder> candidates = new LinkedHashSet<>(configCandidates);
+                                        Set<ConfigurationClass> alreadyParsed = new HashSet<>(configCandidates.size());
+                                        do {
+                                            // 解析注解配置类，并且注册bean
+                                            parser.parse(candidates) {
+
+                                            };
+                                            parser.validate();
+
+                                            // 解析过程中得到的所有可配置类，包括所有@Component注解主键类
+                                            Set<ConfigurationClass> configClasses = new LinkedHashSet<>(parser.getConfigurationClasses());
+                                            configClasses.removeAll(alreadyParsed);
+
+                                            if (this.reader == null) {
+                                                this.reader = new ConfigurationClassBeanDefinitionReader(...);
+                                            }
+
+                                            this.reader.loadBeanDefinition(configClasses);
+                                            alreadyParsed.addAll(configClasses);
+
+                                            candidates.clear();
+
+                                            // ...
+                                        } while (!candidates.isEmpty());
+
+                                        // ...
+                                    };
+                                }
+                            };
+                            // 清空
+                            currentRegistryProcessors.clear();
+
+
+                            // --------------- 然后，调用实现了Ordered接口的BeanDefinitionRetisryPostProcessor --------------- //
+
+                            postProcessorNames = beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
+                            for (String ppName : postProcessorNames) {
+                                if (!processedBeans.contains(ppName) && beanFactory.isTypeMatch(ppName, Ordered.class)) {
+                                    currentRegistryProcessors.add(beanFactory.getBean(ppName, BeanDefinitionRegistryPostProcessor.class));
+                                    processedBeans.add(ppName);
+                                }
+                            }
+                            sortPostProcessors(currentRegistryProcessors, beanFactory);
+                            registryProcessors.addAll(currentRegistryProcessors);
+                            invokeBeanDefinitionRegistryPostProcessors(currentRegistryProcessors, registry);
+                            currentRegistryProcessors.clear();
+
+
+                            // --------------- 然后，调用所有的BeanDefinitionRetisryPostProcessor --------------- //
+
+                            boolean reiterate = true;
+                            while (reiterate) {
+                                reiterate = false;
+                                postProcessorNames = beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
+                                for (String ppName : postProcessorNames) {
+                                    if (!processedBeans.contains(ppName)) {
+                                        currentRegistryProcessors.add(beanFactory.getBean(ppName, BeanDefinitionRegistryPostProcessor.class));
+                                        processedBeans.add(ppName);
+                                        reiterate = true;
+                                    }
+                                }
+                                sortPostProcessors(currentRegistryProcessors, beanFactory);
+                                registryProcessors.addAll(currentRegistryProcessors);
+                                invokeBeanDefinitionRegistryPostProcessors(currentRegistryProcessors, registry);
+                                currentRegistryProcessors.clear();
+                            }
+
+                            invokeBeanFactoryPostProcessors(registryProcessors, beanFactory);
+                            invokeBeanFactoryPostProcessors(regularPostProcessors, beanFactory);
+
+                        } else {
+                            invokeBeanFactoryPostProcessors(beanFactoryPostProcessors, beanFactory);
+                        }
+
+                        ///////////////////////////// 然后，调用BeanFactoryPostProcessor /////////////////////////////
+
+                        // ... 待分析
 
                     };
 
@@ -325,6 +492,7 @@ AnnotationConfigApplicationContext applicationContext
             -- List<String> beanDefinitionNames;    // 所有解析的bean名称列表
             -- List<BeanPostProcessor> beanPostProcessors;  // bean后继处理器列表。例如，处理ApplicationContextAware接口的处理器
             -- Set<Class<?>> ignoredDependencyInterfaces;
+            -- Comparator<Object> dependencyComparator; // 依赖比较器。在初始化AnnotationBeanDefinitionReader时，设置了该字段的值是一个AnnotationAwareOrderComparator对象
     
     // 注解配置bean解析与注册
     -- AnnotatedBeanDefinitionReader reader
