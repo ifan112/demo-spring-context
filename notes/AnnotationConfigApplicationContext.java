@@ -463,6 +463,37 @@ AnnotationConfigApplicationContext applicationContext = new AnnotationConfigAppl
                         
                     }
                 };
+
+                // 注册bean的后置处理器。当bean初始化之后，调用这些后置处理器，对bean进行处理
+                registerBeanPostProcessors(beanFactory);
+
+                initMessageSource();
+
+                // 初始化应用事件发布器
+                initApplicationEventMulticaster();
+
+                onRefresh();
+
+                // 初始化应用事件监听器
+                registerListeners();
+
+                // 初始化所有注册的bean
+                finishBeanFactoryInitialization(beanFactory);
+
+                finishRefresh();
+            } catch (BeanException ex) {
+                // 刷新context过程中出现异常
+
+                // logger 记录日志
+                // 销毁bean
+                destoryBeans();
+                // 设置context状态为非active状态
+                cancelRefresh(ex);
+
+                // 抛出该异常
+                throw ex;
+            } finally {
+                resetCommonCaches();
             }
         }
     };
