@@ -30,11 +30,12 @@ public class ApplicationContextAwareServiceImpl implements ApplicationContextAwa
     /**
      * 可以不实现ApplicationContextAware接口，而在该字段上加上@Autowire，让spring自动注入ApplicationContext实例
      */
-    @Autowired
+    // @Autowired
     private ApplicationContext context;
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        System.out.println("获取到ApplicationContext");
         // OrderServiceImpl在创建之后，该方法将会得到回调，以对该bean实现一些自定义设置
         // 这里简单的保存一下ApplicationContext
         this.context = applicationContext;
