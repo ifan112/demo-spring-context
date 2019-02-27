@@ -51,6 +51,37 @@ public class Application {
         ApplicationContextAwareService contextAwareService = context.getBean(ApplicationContextAwareService.class);
         System.out.println("当前context中一共注册了：" + contextAwareService.getAllBeanDefinitions() + "个bean。");
 
+        // 停止context
+        // 之后，可以通过即调用context.start()再次启动context
+        context.stop();
+
+        // 再次启动之前已经关闭的context
+        context.start();
+
+        MessageService secondMessageService = context.getBean(MessageService.class);
+        // true。表明重新context之后，获取的bean与关闭之前的bean是同一个
+        System.out.println((messageService == secondMessageService));
+        // 可以正常调用服务
+        boolean secondResult = secondMessageService.send("context在关闭之后又重新启动了");
+        System.out.println(secondResult);
+
+
+        // 关闭context
+        // 对于当前不可刷新类型的AnnotationConfigApplicationContext来说，此后context不再可用
+        context.close();
+
+        // 但是，对于ClassPathXmlApplicationContext 和 AnnotationConfigWebApplicationContext
+        // 这种继承自AbstractRefreshableApplicationContext的可重刷新的context来说，
+        // 在关闭context之后，可以通过context.refresh()来刷新context使其可用
+
+        // 总结来说
+        // context.stop()之后，可以通过context.start()来再次启动context。此外，对于Refreshable类型的context来说，还可以通过context.refresh()来刷新context使其可用
+        // context.close()之后，对于不可Refreshable类型的context来说，已经无法再次启动context了。但是，对于Refreshable类型的context来说，可以通过context.refresh()来刷新context使其可用
+
+        // 对于Refreshable类型的context来说，不管是stop还是close当前context，总是可以通过context.refresh()来重新构造context使其可用
+
+        // context.start()并不会刷新context内部的bean，start前后context中的bean是相同的
+        // context.refresh()会刷新context内部的bean，重新解析bean定义，重新构造bean。刷新前后context中的bean是不同的
 
     }
 }
