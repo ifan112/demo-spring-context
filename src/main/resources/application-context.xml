@@ -5,5 +5,12 @@
 
     <bean id="messageService" class="com.ifan112.demo.sc.MessageServiceImpl"/>
 
-    <!--<bean id="orderService" class="com.ifan112.demo.sc.OrderServiceFactory"/>-->
+    <bean id="orderServiceImpl" class="com.ifan112.demo.sc.OrderServiceImpl"/>
+
+    <bean id="applicationContextAwareService" class="com.ifan112.demo.sc.ApplicationContextAwareServiceImpl"/>
+
+
+    <!-- context事件监听器 -->
+    <bean id="applicationContextEventListener" class="com.ifan112.demo.sc.ApplicationContextEventListener"/>
+
 </beans>
