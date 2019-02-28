@@ -24,7 +24,7 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  */
 
 @Configuration
-@EnableAspectJAutoProxy
+// @EnableAspectJAutoProxy
 @ComponentScan("com.ifan112.demo.sc")
 public class ApplicationConfiguration {
 }

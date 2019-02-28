@@ -1,7 +1,9 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <beans xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
        xmlns="http://www.springframework.org/schema/beans"
-       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd">
+       xmlns:aop="http://www.springframework.org/schema/aop"
+       xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+                           http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
 
     <bean id="messageService" class="com.ifan112.demo.sc.MessageServiceImpl"/>
 
@@ -9,8 +11,48 @@
 
     <bean id="applicationContextAwareService" class="com.ifan112.demo.sc.ApplicationContextAwareServiceImpl"/>
 
+    <bean id="userServiceImpl" class="com.ifan112.demo.sc.UserServiceImpl"/>
+
+    <bean id="testServiceImpl" class="com.ifan112.demo.sc.TestServiceImpl"/>
+
+    <bean id="applicationAspectConfiguration" class="com.ifan112.demo.sc.ApplicationAspectConfiguration" />
 
     <!-- context事件监听器 -->
     <bean id="applicationContextEventListener" class="com.ifan112.demo.sc.ApplicationContextEventListener"/>
+
+
+    <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Spring AOP ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
+
+    <!-- 启动AOP自动代理功能。等同于@EnableAspectJAutoProxy注解 -->
+    <aop:aspectj-autoproxy />
+
+    <!--<bean id="logArgsAdvice" class="com.ifan112.demo.sc.LogArgsAdVice"/>-->
+    <!--<bean id="logResultAdvice" class="com.ifan112.demo.sc.LogResultAdvice"/>-->
+
+    <!-- 自动匹配需要代理bean的配置方式 -->
+    <!--
+        BeanNameAutoProxyCreator实现了SmartInstantiationAwareBeanPostProcessor接口，因此，该功能实现的原理基本为：
+        在bean初始化之后（例如messageService和orderServiceImpl），BeanNameAutoProxyCreator作为bean后置处理器会被调用。
+        它会识别出符合配置项beanNames指定的bean，例如orderServiceImpl，然后创建该bean的动态代理，加入advice逻辑，然后存放到beanFactory中。
+        当从context取出OrderService的实现时，实际上得到的是orderServiceImpl的动态代理对象。当调用了orderService的方法时，
+        动态代理对象会执行相应的advice逻辑，然后再执行实际的orderServiceImpl中的业务逻辑。
+        这样就在不修改原有业务代码的条件下，实现了AOP编程。
+    -->
+    <!--<bean class="org.springframework.aop.framework.autoproxy.BeanNameAutoProxyCreator">-->
+    <!--<property name="interceptorNames">-->
+    <!--<list>-->
+    <!--<value>logArgsAdvice</value>-->
+    <!--<value>logResultAdvice</value>-->
+    <!--</list>-->
+    <!--</property>-->
+    <!--&lt;!&ndash;-->
+    <!--拦截bean名称的匹配模式为：以任意字符串开头、ServiceImpl字符串结尾的bean。-->
+    <!--因此，对于上面声明的bean，orderServiceImpl和userServiceImpl来说可以匹配的到，因而它们执行的方法会被拦截。-->
+    <!--但是，对于messageService和applicationContextAwareService来说不能被匹配到，因而它们执行的方法不会被拦截。-->
+    <!--&ndash;&gt;-->
+    <!--<property name="beanNames" value="*ServiceImpl" />-->
+    <!--</bean>-->
+
+    <!-- ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ Spring AOP ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ -->
 
 </beans>

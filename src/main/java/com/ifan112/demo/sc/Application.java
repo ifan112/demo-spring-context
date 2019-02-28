@@ -1,6 +1,7 @@
 package com.ifan112.demo.sc;
 
 import org.springframework.context.annotation.*;
+import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.util.Assert;
 
 
@@ -10,11 +11,11 @@ public class Application {
 
         // 1. ClassPathXmlApplication 或 FileSystemXmlApplicationContext 通过读取并解析xml文件来初始化spring容器
         // 与AnnotationConfigApplicationContext相比，它们不必解析注解的配置类或者扫描包，所有关于bean的配置都在xml中声明
-        // ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("classpath:application-context.xml");
+        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("classpath:application-context.xml");
 
         // 2. 构造AnnotationConfigApplicationContext时传入注解的配置类或者扫描包参数，直接初始化spring容器
         // 2.1
-        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(ApplicationConfiguration.class);
+        // AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(ApplicationConfiguration.class);
         // 2.2
         // AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext("com.king.onlyone");
 
