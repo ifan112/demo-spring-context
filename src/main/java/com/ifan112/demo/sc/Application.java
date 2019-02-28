@@ -1,9 +1,9 @@
 package com.ifan112.demo.sc;
 
 import org.springframework.context.annotation.*;
+import org.springframework.util.Assert;
 
-@Configuration
-@ComponentScan("com.ifan112.demo.sc")
+
 public class Application {
 
     public static void main(String[] args) {
@@ -14,7 +14,7 @@ public class Application {
 
         // 2. 构造AnnotationConfigApplicationContext时传入注解的配置类或者扫描包参数，直接初始化spring容器
         // 2.1
-        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(Application.class);
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(ApplicationConfiguration.class);
         // 2.2
         // AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext("com.king.onlyone");
 
@@ -29,6 +29,7 @@ public class Application {
         // context.refresh();
 
 
+        System.out.println("\n// ---------------------------------------- spring context ------------------------------------------ //\n");
 
 
         MessageService messageService = context.getBean(MessageService.class);
@@ -50,6 +51,34 @@ public class Application {
 
         ApplicationContextAwareService contextAwareService = context.getBean(ApplicationContextAwareService.class);
         System.out.println("当前context中一共注册了：" + contextAwareService.getAllBeanDefinitions() + "个bean。");
+
+
+
+
+
+        System.out.println("\n// ---------------------------------------- spring aop ------------------------------------------ //\n");
+
+        // 获取到的是UserService代理类，具体的实现是JdkDynamicAopProxy，基于java InvokeHandler机制
+        // 它代理了UserServiceImpl，并且按照配置会对UserServiceImpl的方法进行拦截操作
+        UserService userService = context.getBean(UserService.class);
+
+        userService.createUser("一凡", "无", 22);
+
+        User user = userService.getUser();
+        System.out.println(user);
+
+
+        TestServiceImpl testService = context.getBean(TestServiceImpl.class);
+        testService.test();
+
+        // 校验testService是通过CGLIB生成的代理类
+        Assert.isTrue(testService.getClass().getName().contains("CGLIB"), "");
+
+
+
+
+
+        System.out.println("\n// ---------------------------------------- context生命周期方法 ---------------------------------------- //\n");
 
         // 停止context
         // 之后，可以通过即调用context.start()再次启动context

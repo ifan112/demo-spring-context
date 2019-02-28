@@ -30,6 +30,18 @@
             <version>5.1.0.RELEASE</version>
         </dependency>
 
+        <!--
+            添加AspectJ依赖。
+
+            AOP一种编程概念，Spring为了避免重复创造概念，例如Pointcut、Advice等等，直接采用了包内的注解。
+            对于AOP的具体实现，Spring并没有依赖AspectJ去完成，而是基于动态代理和CGLIB的技术创建目标类的代理类，实现了AOP的功能。
+        -->
+        <dependency>
+            <groupId>org.aspectj</groupId>
+            <artifactId>aspectjweaver</artifactId>
+            <version>1.8.11</version>
+        </dependency>
+
     </dependencies>
 
 </project>
