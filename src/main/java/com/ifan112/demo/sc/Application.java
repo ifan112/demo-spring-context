@@ -4,6 +4,8 @@ import org.springframework.context.annotation.*;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
 import org.springframework.util.Assert;
 
+import java.lang.reflect.Proxy;
+
 
 public class Application {
 
@@ -62,6 +64,8 @@ public class Application {
         // 获取到的是UserService代理类，具体的实现是JdkDynamicAopProxy，基于java InvokeHandler机制
         // 它代理了UserServiceImpl，并且按照配置会对UserServiceImpl的方法进行拦截操作
         UserService userService = context.getBean(UserService.class);
+
+        Assert.isTrue(Proxy.isProxyClass(userService.getClass()), "userService并不是Jdk生成的动态代理类");
 
         userService.createUser("一凡", "无", 22);
 
