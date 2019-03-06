@@ -1,12 +1,12 @@
-package com.ifan112.demo.sc;
+package com.ifan112.demo.sc.service.impl;
 
+import com.ifan112.demo.sc.service.OrderService;
 import org.springframework.context.annotation.ConditionContext;
-import org.springframework.context.annotation.Conditional;
 import org.springframework.context.annotation.ConfigurationCondition;
 import org.springframework.core.type.AnnotatedTypeMetadata;
 import org.springframework.stereotype.Service;
 
-@Service
+// @Service
 // @Conditional(OrderServiceCondition.class)
 public class OrderServiceImpl implements OrderService {
 

@@ -5,15 +5,15 @@
        xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
                            http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop.xsd">
 
-    <bean id="messageService" class="com.ifan112.demo.sc.MessageServiceImpl"/>
+    <bean id="messageService" class="com.ifan112.demo.sc.service.impl.MessageServiceImpl"/>
 
-    <bean id="orderServiceImpl" class="com.ifan112.demo.sc.OrderServiceImpl"/>
+    <bean id="orderService" class="com.ifan112.demo.sc.service.impl.OrderServiceFactoryBean"/>
 
-    <bean id="applicationContextAwareService" class="com.ifan112.demo.sc.ApplicationContextAwareServiceImpl"/>
+    <bean id="applicationContextAwareService" class="com.ifan112.demo.sc.service.impl.ApplicationContextAwareServiceImpl"/>
 
-    <bean id="userServiceImpl" class="com.ifan112.demo.sc.UserServiceImpl"/>
+    <bean id="userService" class="com.ifan112.demo.sc.service.impl.UserServiceImpl"/>
 
-    <bean id="testServiceImpl" class="com.ifan112.demo.sc.TestServiceImpl"/>
+    <bean id="testService" class="com.ifan112.demo.sc.service.impl.TestServiceImpl"/>
 
     <bean id="applicationAspectConfiguration" class="com.ifan112.demo.sc.ApplicationAspectConfiguration" />
 

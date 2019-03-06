@@ -1,4 +1,4 @@
-package com.ifan112.demo.sc;
+package com.ifan112.demo.sc.service;
 
 /**
  * ApplicationContextAware接口 和 该接口的处理器ApplicationContextAwareProcessor 的用法示例服务接口。

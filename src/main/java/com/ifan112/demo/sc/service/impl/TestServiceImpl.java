@@ -1,4 +1,4 @@
-package com.ifan112.demo.sc;
+package com.ifan112.demo.sc.service.impl;
 
 import org.springframework.stereotype.Service;
 

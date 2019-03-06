@@ -1,23 +1,30 @@
 package com.ifan112.demo.sc;
 
+import com.ifan112.demo.sc.entity.User;
+import com.ifan112.demo.sc.service.ApplicationContextAwareService;
+import com.ifan112.demo.sc.service.MessageService;
+import com.ifan112.demo.sc.service.OrderService;
+import com.ifan112.demo.sc.service.UserService;
+import com.ifan112.demo.sc.service.impl.OrderServiceFactoryBean;
+import com.ifan112.demo.sc.service.impl.TestServiceImpl;
+import org.junit.Assert;
 import org.springframework.context.annotation.*;
 import org.springframework.context.support.ClassPathXmlApplicationContext;
-import org.springframework.util.Assert;
 
 import java.lang.reflect.Proxy;
 
 
-public class Application {
+public class DemoSpringContextApplication {
 
     public static void main(String[] args) {
 
         // 1. ClassPathXmlApplication 或 FileSystemXmlApplicationContext 通过读取并解析xml文件来初始化spring容器
         // 与AnnotationConfigApplicationContext相比，它们不必解析注解的配置类或者扫描包，所有关于bean的配置都在xml中声明
-        ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("classpath:application-context.xml");
+        // ClassPathXmlApplicationContext context = new ClassPathXmlApplicationContext("classpath:application-context.xml");
 
         // 2. 构造AnnotationConfigApplicationContext时传入注解的配置类或者扫描包参数，直接初始化spring容器
         // 2.1
-        // AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(ApplicationConfiguration.class);
+        AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext(DemoSpringContextConfiguration.class);
         // 2.2
         // AnnotationConfigApplicationContext context = new AnnotationConfigApplicationContext("com.king.onlyone");
 
@@ -39,17 +46,23 @@ public class Application {
         // 对于非FactoryBean的bean，在context初始化时就会初始化
         // MessageService messageService = (MessageService) context.getBean("messageServiceImpl");
         boolean result = messageService.send("Hello World!");
-        System.out.println(result);
+        Assert.assertTrue(result);
 
         // FactoryBean即使是单例模式，也只有在获取的时候才会初始化
-        OrderService orderService = (OrderService) context.getBean("orderServiceImpl");
-        OrderService orderService2 = (OrderService) context.getBean("orderServiceImpl");
-        OrderService orderService3 = (OrderService) context.getBean("orderServiceImpl");
+        OrderService orderService = context.getBean(OrderService.class);
+        OrderService orderService2 = (OrderService) context.getBean("orderService");
         orderService.newOrder("用户名", 12345);
 
-        System.out.println(orderService.hashCode());
-        System.out.println(orderService2.hashCode());
-        System.out.println(orderService3.hashCode());
+        // 断言使用FactoryBean方式获取到的OrderService对象是同一个，即单例
+        Assert.assertEquals(orderService.hashCode(), orderService2.hashCode());
+
+
+        // 可以通过名称&orderService和OrderServiceFactoryBean类型，从context中获取到OrderServiceFactoryBean对象
+        // 毕竟，它也是注册到context中的
+        OrderServiceFactoryBean orderServiceFactoryBean = (OrderServiceFactoryBean) context.getBean("&orderService");
+        OrderServiceFactoryBean orderServiceFactoryBean1 = context.getBean(OrderServiceFactoryBean.class);
+
+        Assert.assertEquals(orderServiceFactoryBean.hashCode(), orderServiceFactoryBean1.hashCode());
 
 
         ApplicationContextAwareService contextAwareService = context.getBean(ApplicationContextAwareService.class);
@@ -65,19 +78,22 @@ public class Application {
         // 它代理了UserServiceImpl，并且按照配置会对UserServiceImpl的方法进行拦截操作
         UserService userService = context.getBean(UserService.class);
 
-        Assert.isTrue(Proxy.isProxyClass(userService.getClass()), "userService并不是Jdk生成的动态代理类");
+        Assert.assertTrue("userService并不是Jdk生成的动态代理类", Proxy.isProxyClass(userService.getClass()));
 
         userService.createUser("一凡", "无", 22);
 
         User user = userService.getUser();
-        System.out.println(user);
+
+        Assert.assertEquals(22, user.getAge());
+        Assert.assertEquals("一凡", user.getFirstName());
+        Assert.assertEquals("无", user.getLastName());
 
 
         TestServiceImpl testService = context.getBean(TestServiceImpl.class);
         testService.test();
 
         // 校验testService是通过CGLIB生成的代理类
-        Assert.isTrue(testService.getClass().getName().contains("CGLIB"), "");
+        Assert.assertTrue("testService并不是CGLIB生成的代理类", testService.getClass().getName().contains("CGLIB"));
 
 
 
@@ -94,10 +110,11 @@ public class Application {
 
         MessageService secondMessageService = context.getBean(MessageService.class);
         // true。表明重新context之后，获取的bean与关闭之前的bean是同一个
-        System.out.println((messageService == secondMessageService));
+        Assert.assertSame(messageService, secondMessageService);
+
         // 可以正常调用服务
         boolean secondResult = secondMessageService.send("context在关闭之后又重新启动了");
-        System.out.println(secondResult);
+        Assert.assertTrue(secondResult);
 
 
         // 关闭context

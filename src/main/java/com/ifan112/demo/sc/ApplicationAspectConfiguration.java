@@ -28,7 +28,7 @@ public class ApplicationAspectConfiguration {
      *
      * 切入点是当前包下所有的类名以ServiceImpl结尾的bean下的所有方法
      */
-    @Pointcut("execution(* com.ifan112.demo.sc.*ServiceImpl.*(..))")
+    @Pointcut("execution(* com.ifan112.demo.sc.service.impl.*ServiceImpl.*(..))")
     public void servicePointCut() {}
 
 

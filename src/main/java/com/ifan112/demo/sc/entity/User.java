@@ -1,4 +1,4 @@
-package com.ifan112.demo.sc;
+package com.ifan112.demo.sc.entity;
 
 public class User {
     private String firstName;

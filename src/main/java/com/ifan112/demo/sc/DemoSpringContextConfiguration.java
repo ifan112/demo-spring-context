@@ -1,5 +1,7 @@
 package com.ifan112.demo.sc;
 
+import com.ifan112.demo.sc.service.impl.OrderServiceFactoryBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.EnableAspectJAutoProxy;
@@ -24,7 +26,21 @@ import org.springframework.context.annotation.EnableAspectJAutoProxy;
  */
 
 @Configuration
-// @EnableAspectJAutoProxy
+@EnableAspectJAutoProxy
 @ComponentScan("com.ifan112.demo.sc")
-public class ApplicationConfiguration {
+public class DemoSpringContextConfiguration {
+
+    /**
+     * 声明一个用于创建OrderService实现的FactoryBean
+     *
+     * 虽然注册到context中的是OrderServiceFactory，但是context在检测到它是FactoryBean之后，
+     * 会调用它的getObject()方法，获取到真正的目标Bean。
+     *
+     * @return  OrderServiceFactoryBean
+     */
+    @Bean
+    public OrderServiceFactoryBean orderService() {
+        return new OrderServiceFactoryBean();
+    }
+
 }

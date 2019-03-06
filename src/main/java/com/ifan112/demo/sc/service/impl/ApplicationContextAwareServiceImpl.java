@@ -1,7 +1,7 @@
-package com.ifan112.demo.sc;
+package com.ifan112.demo.sc.service.impl;
 
+import com.ifan112.demo.sc.service.ApplicationContextAwareService;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Service;
